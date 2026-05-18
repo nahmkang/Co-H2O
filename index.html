@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Co-H₂O Pourbaix Diagram</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         color: #2C2C2A; background: #f5f4f0; padding: 1.5rem; max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 500; margin: 0 0 1rem; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr));
+              gap: 14px; background: white; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;
+              border: 0.5px solid rgba(0,0,0,0.15); }
+  .ctl { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; color: #5F5E5A; }
+  .rowin { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { flex: 1; }
+  .out { font-size: 13px; font-weight: 500; min-width: 64px; text-align: left; }
+  select { font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 0.5px solid rgba(0,0,0,0.2); }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  canvas { display: block; width: 100%; height: auto; background: white;
+           border: 0.5px solid rgba(0,0,0,0.15); border-radius: 10px; }
+  button { font-size: 13px; padding: 8px 14px; background: white;
+           border: 0.5px solid rgba(0,0,0,0.2); border-radius: 6px; cursor: pointer; }
+  .info { font-size: 12px; color: #5F5E5A; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+<h1>Co-H₂O Pourbaix diagram (25 °C)</h1>
+<p style="color:#5F5E5A; font-size:13px; margin-top:-0.5rem; margin-bottom: 1rem">Thermodynamic data from Chivot, Mendoza, Mansour, Pauporté, Cassir, <em>Corros. Sci.</em> <b>50</b> (2008) 62–69 — CODATA-consistent. Slide [Co] to see how the Co²⁺ corrosion field, Co(OH)₂(s) and Co(OH)₃⁻ regions shift. Toggle CoOOH(s) to compare with/without heterogenite.</p>
+<div class="controls">
+    <div class="ctl">
+      <label>Total Co concentration</label>
+      <div class="rowin"><input id="cCo" type="range" min="-8" max="0.7" value="-2" step="0.02"><span class="out" id="cCoOut">10 mM</span></div>
+    </div>
+  <div class="ctl">
+    <label>Reference electrode</label>
+    <select id="ref">
+      <option value="0">SHE (0 V)</option>
+      <option value="0.241">SCE (+0.241 V)</option>
+      <option value="0.197">Ag/AgCl sat. KCl (+0.197 V)</option>
+      <option value="0.210">Ag/AgCl 3M KCl (+0.210 V)</option>
+      <option value="0.109">Hg/HgO 1M NaOH (+0.109 V)</option>
+      <option value="RHE">RHE</option>
+    </select>
+  </div>
+  <div class="ctl" style="justify-content:flex-end">
+    <label class="check"><input id="water" type="checkbox" checked> Water lines</label>
+    <label class="check"><input id="coooh" type="checkbox"> Include CoOOH(s)</label>
+    <label class="check"><input id="paper" type="checkbox"> Paper mode</label>
+  </div>
+</div>
+<canvas id="cv" width="880" height="560"></canvas>
+<div style="margin-top:8px"><button id="png">Generate PNG</button> <span class="info" id="info"></span></div>
+<div id="pngOut" style="margin-top:8px"></div>
+<details style="margin-top:1rem; font-size:13px; background:white; padding:0.75rem 1rem; border:0.5px solid rgba(0,0,0,0.15); border-radius:8px" open>
+<summary style="cursor:pointer; font-weight:500">Nernst equations &amp; thermodynamic data</summary>
+<p style="margin:0.5rem 0 0.25rem; color:#5F5E5A">S = 0.05916 V (RT·ln10/F at 25 °C). All ΔG°<sub>f</sub> values (kJ/mol) from Chivot et al. (2008) Table 1. Solids and H₂O have activity = 1.</p>
+
+<h4 style="margin:0.75rem 0 0.25rem; font-size:13px">ΔG°<sub>f</sub> values used (kJ/mol, 25 °C, 1 bar)</h4>
+<table style="width:100%; border-collapse:collapse; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px">
+<thead style="background:#f5f4f0"><tr><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Species</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">State</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">ΔG°<sub>f</sub></th></tr></thead>
+<tbody>
+<tr><td style="padding:3px 6px">Co</td><td style="padding:3px 6px">s</td><td style="padding:3px 6px">0</td></tr>
+<tr><td style="padding:3px 6px">Co²⁺</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">−55.6</td></tr>
+<tr><td style="padding:3px 6px">CoOH⁺</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">−240.1</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₂°</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">−423.7</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₃⁻</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">−586.0</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₄²⁻</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">−739.2</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₂</td><td style="padding:3px 6px">s</td><td style="padding:3px 6px">−460.2</td></tr>
+<tr><td style="padding:3px 6px">Co³⁺</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">+133.62</td></tr>
+<tr><td style="padding:3px 6px">CoOH²⁺</td><td style="padding:3px 6px">aq</td><td style="padding:3px 6px">−96.30</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₃</td><td style="padding:3px 6px">s</td><td style="padding:3px 6px">−596.33</td></tr>
+<tr><td style="padding:3px 6px">Co₃O₄</td><td style="padding:3px 6px">s</td><td style="padding:3px 6px">−794.901</td></tr>
+<tr><td style="padding:3px 6px">CoOOH</td><td style="padding:3px 6px">s</td><td style="padding:3px 6px">−386.18</td></tr>
+<tr><td style="padding:3px 6px">H₂O</td><td style="padding:3px 6px">l</td><td style="padding:3px 6px">−237.14</td></tr>
+</tbody>
+</table>
+
+<h4 style="margin:0.75rem 0 0.25rem; font-size:13px">Floor (A-lines, → Co metal)</h4>
+<table style="width:100%; border-collapse:collapse; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px">
+<thead style="background:#f5f4f0"><tr><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Line</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Half-reaction</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">E° (V)</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Nernst expression</th></tr></thead>
+<tbody>
+<tr><td style="padding:3px 6px">A0</td><td style="padding:3px 6px">Co²⁺ + 2e⁻ → Co</td><td style="padding:3px 6px">−0.2881</td><td style="padding:3px 6px">E = −0.2881 + (S/2)·log[Co²⁺]</td></tr>
+<tr><td style="padding:3px 6px">A1</td><td style="padding:3px 6px">Co(OH)₃⁻ + 3H⁺ + 2e⁻ → Co + 3H₂O</td><td style="padding:3px 6px">+0.6499</td><td style="padding:3px 6px">E = 0.6499 − (3S/2)·pH + (S/2)·log[Co(OH)₃⁻]</td></tr>
+<tr><td style="padding:3px 6px">A2</td><td style="padding:3px 6px">Co(OH)₄²⁻ + 4H⁺ + 2e⁻ → Co + 4H₂O</td><td style="padding:3px 6px">+1.0849</td><td style="padding:3px 6px">E = 1.0849 − 2S·pH + (S/2)·log[Co(OH)₄²⁻]</td></tr>
+<tr><td style="padding:3px 6px">B</td><td style="padding:3px 6px">Co(OH)₂(s) + 2H⁺ + 2e⁻ → Co + 2H₂O</td><td style="padding:3px 6px">+0.0730</td><td style="padding:3px 6px">E = 0.0730 − S·pH</td></tr>
+</tbody>
+</table>
+
+<h4 style="margin:0.75rem 0 0.25rem; font-size:13px">Roof (D-lines, → Co(III) phases)</h4>
+<table style="width:100%; border-collapse:collapse; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px">
+<thead style="background:#f5f4f0"><tr><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Line</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Half-reaction</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">E° (V)</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Nernst expression</th></tr></thead>
+<tbody>
+<tr><td style="padding:3px 6px">D0</td><td style="padding:3px 6px">Co₃O₄(s) + 8H⁺ + 2e⁻ → 3Co²⁺ + 4H₂O</td><td style="padding:3px 6px">+1.6607</td><td style="padding:3px 6px">E = 1.6607 − 4S·pH − (3S/2)·log[Co²⁺]</td></tr>
+<tr><td style="padding:3px 6px">D1</td><td style="padding:3px 6px">Co₃O₄(s) + 2H₂O + 2H⁺ + 2e⁻ → 3Co(OH)₂(s)</td><td style="padding:3px 6px">+0.5774</td><td style="padding:3px 6px">E = 0.5774 − S·pH</td></tr>
+<tr><td style="padding:3px 6px">D2</td><td style="padding:3px 6px">Co₃O₄(s) + 5H₂O + 2e⁻ → 3Co(OH)₃⁻ + H⁺</td><td style="padding:3px 6px">−1.1536</td><td style="padding:3px 6px">E = −1.1536 + (S/2)·pH − (3S/2)·log[Co(OH)₃⁻]</td></tr>
+<tr><td style="padding:3px 6px">D3</td><td style="padding:3px 6px">Co₃O₄(s) + 8H₂O + 2e⁻ → 3Co(OH)₄²⁻ + 4H⁺</td><td style="padding:3px 6px">−2.456</td><td style="padding:3px 6px">E = −2.456 + 2S·pH − (3S/2)·log[Co(OH)₄²⁻]</td></tr>
+<tr><td style="padding:3px 6px">C</td><td style="padding:3px 6px">3Co(OH)₃(s) + H⁺ + e⁻ → Co₃O₄(s) + 5H₂O</td><td style="padding:3px 6px">+1.9859</td><td style="padding:3px 6px">E = 1.9859 − S·pH</td></tr>
+<tr><td style="padding:3px 6px">C′</td><td style="padding:3px 6px">3CoOOH(s) + H⁺ + e⁻ → Co₃O₄(s) + 2H₂O <em>(if CoOOH on)</em></td><td style="padding:3px 6px">+1.1466</td><td style="padding:3px 6px">E = 1.1466 − S·pH</td></tr>
+</tbody>
+</table>
+
+<h4 style="margin:0.75rem 0 0.25rem; font-size:13px">Chemical equilibria (vertical lines: solid ⇌ dissolved)</h4>
+<table style="width:100%; border-collapse:collapse; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px">
+<thead style="background:#f5f4f0"><tr><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Equilibrium</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">log K</th><th style="text-align:left; padding:4px 6px; border-bottom:0.5px solid rgba(0,0,0,0.15)">Saturation pH at [Co]=C</th></tr></thead>
+<tbody>
+<tr><td style="padding:3px 6px">Co(OH)₂(s) + 2H⁺ ⇌ Co²⁺ + 2H₂O</td><td style="padding:3px 6px">+12.21</td><td style="padding:3px 6px">pH = (12.21 − log C) / 2</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₂(s) + H₂O ⇌ Co(OH)₃⁻ + H⁺</td><td style="padding:3px 6px">−19.50</td><td style="padding:3px 6px">pH = log C + 19.50</td></tr>
+<tr><td style="padding:3px 6px">Co(OH)₂(s) + 2H₂O ⇌ Co(OH)₄²⁻ + 2H⁺</td><td style="padding:3px 6px">−34.21</td><td style="padding:3px 6px">pH = (log C + 34.21) / 2</td></tr>
+<tr><td style="padding:3px 6px">Co²⁺ + H₂O ⇌ CoOH⁺ + H⁺ (minor)</td><td style="padding:3px 6px">−9.22</td><td style="padding:3px 6px">—</td></tr>
+</tbody>
+</table>
+</details>
+<script>
+(function(){
+  const S = 0.05916;
+  // Thermodynamic constants for boundary lines (vs SHE), from Chivot 2008
+  const E0_Co2_Co       = -0.2881;
+  const E0_CoOH3m_Co    =  0.6499;
+  const E0_CoOH4_Co     =  1.0849;
+  const E0_CoOH2s_Co    =  0.0730;
+  const E0_Co3O4_Co2    =  1.6607;
+  const E0_Co3O4_CoOH2s =  0.5774;
+  const E0_Co3O4_CoOH3m = -1.1536;
+  const E0_Co3O4_CoOH4  = -2.456;
+  const E0_CoOH3s_Co3O4 =  1.9859;
+  const E0_CoOH3s_CoOH2s = 1.0469;  // Co(OH)3(s) + H+ + e- = Co(OH)2(s) + H2O
+  const E0_CoOOH_Co3O4  =  1.1466;
+
+  function fmtConc(M){
+    if (M >= 1)    return (M < 10 ? Math.round(M*100)/100 : Math.round(M*10)/10)+' M';
+    if (M >= 0.01) return (Math.round(M*1000)/1000)+' M';
+    if (M >= 1e-3) return (Math.round(M*100000)/100)+' mM';
+    if (M >= 1e-6) return (Math.round(M*1e8)/100)+' µM';
+    return (Math.round(M*1e11)/100)+' nM';
+  }
+
+  function dominantDissolved(pH){
+    const r0 = 0;
+    const r1 = -9.22 + pH;
+    const r3 = -31.71 + 3*pH;
+    const r4 = -46.41 + 4*pH;
+    if (r0 >= r1 && r0 >= r3 && r0 >= r4) return 'Co2+';
+    if (r1 >= r3 && r1 >= r4) return 'CoOH+';
+    if (r3 >= r4) return 'Co(OH)3-';
+    return 'Co(OH)4_2-';
+  }
+
+  function solidStable(pH, logC){
+    // Total Co solubility when Co(OH)2(s) is the solubility-limiting phase:
+    // [Co]_sat = [Co2+]_sat + [CoOH+]_sat + [Co(OH)2°]_sat + [Co(OH)3-]_sat + [Co(OH)4_2-]_sat
+    const a = Math.pow(10, 12.21 - 2*pH);   // Co2+
+    const b = Math.pow(10, 3.0 - pH);       // CoOH+
+    const c = Math.pow(10, -6.39);          // Co(OH)2° (aq, pH-indep)
+    const d = Math.pow(10, -19.50 + pH);    // Co(OH)3-
+    const e = Math.pow(10, -34.21 + 2*pH);  // Co(OH)4_2-
+    const log_sat = Math.log10(a + b + c + d + e);
+    return logC > log_sat;
+  }
+
+  function E_floor(pH, logC, solid, dom){
+    if (solid) return E0_CoOH2s_Co - S*pH;
+    if (dom === 'Co2+')       return E0_Co2_Co    + (S/2)*logC;
+    if (dom === 'CoOH+')      return -0.0153      - (S/2)*pH + (S/2)*logC;
+    if (dom === 'Co(OH)3-')   return E0_CoOH3m_Co - (3*S/2)*pH + (S/2)*logC;
+    if (dom === 'Co(OH)4_2-') return E0_CoOH4_Co  - 2*S*pH + (S/2)*logC;
+    return E0_Co2_Co + (S/2)*logC;
+  }
+
+  function E_roof_to_Co3O4(pH, logC, solid, dom){
+    if (solid) return E0_Co3O4_CoOH2s - S*pH;
+    if (dom === 'Co2+')       return E0_Co3O4_Co2    - 4*S*pH - (3*S/2)*logC;
+    if (dom === 'CoOH+')      return 0.8423 - (5*S/2)*pH - (3*S/2)*logC;
+    if (dom === 'Co(OH)3-')   return E0_Co3O4_CoOH3m + (S/2)*pH - (3*S/2)*logC;
+    if (dom === 'Co(OH)4_2-') return E0_Co3O4_CoOH4  + 2*S*pH - (3*S/2)*logC;
+    return E0_Co3O4_Co2 - 4*S*pH - (3*S/2)*logC;
+  }
+
+  function E_Co3O4_to_CoOH3s(pH){ return E0_CoOH3s_Co3O4 - S*pH; }
+  function E_Co3O4_to_CoOOH(pH){ return E0_CoOOH_Co3O4 - S*pH; }
+
+  // Direct Co(II) → Co(OH)3(s) line (used when Co3O4 is metastable, i.e. squeezed out)
+  // Co(OH)3(s) + 3H+ + e- = Co2+ + 3H2O,  E° = +1.7691 V
+  // Co(OH)3(s) + 2H+ + e- = CoOH+ + 2H2O, E° derived: ΔG=G(CoOH+)+2*G(H2O)-G(Co(OH)3)=−240.1+2*(−237.14)−(−596.33)=−118.05; E°=+1.2235
+  // Co(OH)3(s) + e- = Co(OH)3-,  E° = -0.1071 V
+  // Co(OH)3(s) + H2O + e- = Co(OH)4(2-) + H+,  E° = -0.9770 V
+  function E_direct_CoIII(pH, logC, solid, dom){
+    if (solid) return E0_CoOH3s_CoOH2s - S*pH;  // Co(OH)3/Co(OH)2(s), no [Co] dep
+    if (dom === 'Co2+')       return 1.7691 - 3*S*pH - S*logC;
+    if (dom === 'CoOH+')      return 1.2235 - 2*S*pH - S*logC;
+    if (dom === 'Co(OH)3-')   return -0.1071 - S*logC;
+    if (dom === 'Co(OH)4_2-') return -0.9770 + S*pH - S*logC;
+    return 1.7691 - 3*S*pH - S*logC;
+  }
+
+  const labelMap = {
+    'Co':'Co', 'Co2+':'Co²⁺', 'CoOH+':'CoOH⁺',
+    'Co(OH)3-':'Co(OH)₃⁻', 'Co(OH)4_2-':'Co(OH)₄²⁻',
+    'Co(OH)2':'Co(OH)₂', 'Co3O4':'Co₃O₄',
+    'Co(OH)3':'Co(OH)₃', 'CoOOH':'CoOOH'
+  };
+
+  const regionColor = {
+    'Co':       '#C8CDD4',   // cool steel grey - immunity
+    'Co2+':     '#F08A7C',   // vibrant coral - acidic corrosion
+    'CoOH+':    '#F19E84',   // warm orange-coral
+    'Co(OH)3-': '#5DADE2',   // sky blue - alkaline corrosion
+    'Co(OH)4_2-': '#3498DB', // deeper azure - strongly alkaline
+    'Co(OH)2':  '#7FCDB9',   // soft turquoise - low passivation hydroxide
+    'Co3O4':    '#2A8FA8',   // vibrant teal-blue - main passivation oxide
+    'Co(OH)3':  '#1E5F8A',   // deep ocean blue - highest oxide
+    'CoOOH':    '#4AA9C4'    // bright teal - bridges Co3O4 family
+  };
+
+  const cv = document.getElementById('cv');
+  const PADL=70, PADR=24, PADT=52, PADB=52;
+  const PH_MIN=0, PH_MAX=16, E_MIN=-1.5, E_MAX=2.5;
+  function x(pH,w){return PADL+(pH-PH_MIN)/(PH_MAX-PH_MIN)*(w-PADL-PADR);}
+  function y(E,h){return PADT+(E_MAX-E)/(E_MAX-E_MIN)*(h-PADT-PADB);}
+  function pHfromPx(px,w){return PH_MIN+(px-PADL)/(w-PADL-PADR)*(PH_MAX-PH_MIN);}
+
+  function draw(targetCv){
+    const w = targetCv.width, h = targetCv.height;
+    const c = targetCv.getContext('2d');
+    c.setTransform(1,0,0,1,0,0);
+    const logC = parseFloat(document.getElementById('cCo').value);
+    const C_M  = Math.pow(10, logC);
+    const paper = document.getElementById('paper').checked;
+    const showWater = document.getElementById('water').checked;
+    const includeCoOOH = document.getElementById('coooh').checked;
+    const refSel = document.getElementById('ref');
+    const offRef = refSel.value === 'RHE' ? null : parseFloat(refSel.value);
+    function ydisp(E_she, pH){ if (offRef===null) return y(E_she+S*pH,h); return y(E_she-offRef,h); }
+    c.fillStyle = '#FFFFFF'; c.fillRect(0,0,w,h);
+
+    const colDom = new Array(w);
+    const colEf  = new Float64Array(w);
+    const colEr  = new Float64Array(w);
+    const colEr2 = new Float64Array(w);
+    const colEcoooh = new Float64Array(w);
+    const colSolid = new Array(w);
+    const colCo3O4metastable = new Array(w);
+    const PIXEL_STEP = 2;
+
+    for (let px = PADL; px < w-PADR; px += PIXEL_STEP){
+      const pH = pHfromPx(px, w);
+      const dom = dominantDissolved(pH);
+      const solid = solidStable(pH, logC);
+      colSolid[px] = solid;
+      colDom[px] = solid ? 'Co(OH)2' : dom;
+      colEf[px] = E_floor(pH, logC, solid, dom);
+      const E_Co3O4_low = E_roof_to_Co3O4(pH, logC, solid, dom);
+      const E_Co3O4_high = E_Co3O4_to_CoOH3s(pH);
+      // If Co3O4 lower boundary > upper boundary, the Co3O4 region is metastable (squeezed out).
+      // Use direct Co(II) → Co(OH)3(s) line instead.
+      if (E_Co3O4_low > E_Co3O4_high) {
+        colCo3O4metastable[px] = true;
+        colEr[px] = E_direct_CoIII(pH, logC, solid, dom);
+        colEr2[px] = colEr[px];
+      } else {
+        colCo3O4metastable[px] = false;
+        colEr[px] = E_Co3O4_low;
+        colEr2[px] = E_Co3O4_high;
+      }
+      colEcoooh[px] = E_Co3O4_to_CoOOH(pH);
+    }
+    for (let px = PADL; px < w-PADR; px++){
+      if ((px - PADL) % PIXEL_STEP === 0) continue;
+      const srcPx = PADL + Math.floor((px - PADL) / PIXEL_STEP) * PIXEL_STEP;
+      if (srcPx >= PADL && srcPx < w-PADR){
+        colDom[px] = colDom[srcPx];
+        colEf[px] = colEf[srcPx];
+        colEr[px] = colEr[srcPx];
+        colEr2[px] = colEr2[srcPx];
+        colEcoooh[px] = colEcoooh[srcPx];
+        colSolid[px] = colSolid[srcPx];
+        colCo3O4metastable[px] = colCo3O4metastable[srcPx];
+      }
+    }
+
+    if (!paper){
+      for (let px = PADL; px < w-PADR; px++){
+        const pH = pHfromPx(px, w);
+        const yMetal = ydisp(colEf[px], pH);
+        const yMid   = ydisp(colEr[px], pH);
+        const yOH3   = ydisp(colEr2[px], pH);
+        const yCoooh = includeCoOOH ? ydisp(colEcoooh[px], pH) : yOH3;
+        const meta = colCo3O4metastable[px];
+
+        const yBot = Math.min(yMetal, h-PADB);
+        const yTopMid = Math.max(yMid, PADT);
+        const yTopOxLow = Math.max(yCoooh, PADT);
+        const yTopOH3 = Math.max(yOH3, PADT);
+
+        c.fillStyle = regionColor['Co'];
+        c.fillRect(px, yBot, 1, Math.max(0, (h-PADB) - yBot));
+        c.fillStyle = regionColor[colDom[px]];
+        c.fillRect(px, yTopMid, 1, Math.max(0, yBot - yTopMid));
+        if (meta) {
+          // Co3O4 squeezed out — Co(OH)3 fills above the direct boundary
+          c.fillStyle = regionColor['Co(OH)3'];
+          c.fillRect(px, PADT, 1, Math.max(0, yTopMid - PADT));
+        } else if (includeCoOOH) {
+          c.fillStyle = regionColor['Co3O4'];
+          c.fillRect(px, yTopOxLow, 1, Math.max(0, yTopMid - yTopOxLow));
+          c.fillStyle = regionColor['CoOOH'];
+          c.fillRect(px, yTopOH3, 1, Math.max(0, yTopOxLow - yTopOH3));
+          c.fillStyle = regionColor['Co(OH)3'];
+          c.fillRect(px, PADT, 1, Math.max(0, yTopOH3 - PADT));
+        } else {
+          c.fillStyle = regionColor['Co3O4'];
+          c.fillRect(px, yTopOH3, 1, Math.max(0, yTopMid - yTopOH3));
+          c.fillStyle = regionColor['Co(OH)3'];
+          c.fillRect(px, PADT, 1, Math.max(0, yTopOH3 - PADT));
+        }
+      }
+    }
+
+    const fontMain = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+    c.strokeStyle='#2C2C2A'; c.fillStyle='#2C2C2A'; c.lineWidth=1.2;
+    c.strokeRect(PADL, PADT, w-PADL-PADR, h-PADT-PADB);
+    c.font='500 13px '+fontMain; c.textAlign='center'; c.textBaseline='top';
+    for (let p = 0; p <= 16; p += 2){
+      const xp = x(p, w);
+      c.beginPath(); c.moveTo(xp, h-PADB); c.lineTo(xp, h-PADB+5); c.stroke();
+      c.fillText(p.toString(), xp, h-PADB+8);
+    }
+    c.font='500 15px '+fontMain; c.fillText('pH', (PADL+w-PADR)/2, h-22);
+    c.font='500 13px '+fontMain; c.textAlign='right'; c.textBaseline='middle';
+    for (let e = -1.5; e <= 2.5+1e-9; e += 0.5){
+      const yp = y(e, h);
+      c.beginPath(); c.moveTo(PADL-5, yp); c.lineTo(PADL, yp); c.stroke();
+      c.fillText(e.toFixed(1), PADL-8, yp);
+    }
+    c.save(); c.translate(20, (PADT+h-PADB)/2); c.rotate(-Math.PI/2);
+    c.textAlign='center'; c.textBaseline='middle'; c.font='500 15px '+fontMain;
+    const refLabel = refSel.value==='RHE' ? 'RHE' : refSel.options[refSel.selectedIndex].text.split(' ')[0];
+    c.fillText('E vs '+refLabel+' / V', 0, 0); c.restore();
+
+    c.lineWidth = 2; c.strokeStyle = '#791F1F';
+    {
+      let pen=false; c.beginPath();
+      for (let pH = PH_MIN; pH <= PH_MAX+1e-9; pH += 0.05){
+        const dom = dominantDissolved(pH);
+        const solid = solidStable(pH, logC);
+        const E_she = E_floor(pH, logC, solid, dom);
+        const E_disp = offRef===null ? E_she + S*pH : E_she - offRef;
+        if (E_disp < E_MIN || E_disp > E_MAX){ pen=false; continue; }
+        const px = x(pH, w), py = y(E_disp, h);
+        if (!pen){ c.moveTo(px, py); pen=true; } else c.lineTo(px, py);
+      }
+      c.stroke();
+    }
+    {
+      let pen=false; c.beginPath();
+      for (let pH = PH_MIN; pH <= PH_MAX+1e-9; pH += 0.05){
+        const dom = dominantDissolved(pH);
+        const solid = solidStable(pH, logC);
+        const E_Co3O4_low = E_roof_to_Co3O4(pH, logC, solid, dom);
+        const E_Co3O4_high = E_Co3O4_to_CoOH3s(pH);
+        // Draw Co3O4/Co(II) only where Co3O4 is stable, else draw direct Co(II)/Co(OH)3(s) line
+        const E_she = (E_Co3O4_low > E_Co3O4_high)
+          ? E_direct_CoIII(pH, logC, solid, dom)
+          : E_Co3O4_low;
+        const E_disp = offRef===null ? E_she + S*pH : E_she - offRef;
+        if (E_disp < E_MIN || E_disp > E_MAX){ pen=false; continue; }
+        const px = x(pH, w), py = y(E_disp, h);
+        if (!pen){ c.moveTo(px, py); pen=true; } else c.lineTo(px, py);
+      }
+      c.stroke();
+    }
+    {
+      // Co3O4/Co(OH)3(s) top boundary — only draw where Co3O4 is stable
+      let pen=false; c.beginPath();
+      for (let pH = PH_MIN; pH <= PH_MAX+1e-9; pH += 0.05){
+        const dom = dominantDissolved(pH);
+        const solid = solidStable(pH, logC);
+        const E_Co3O4_low = E_roof_to_Co3O4(pH, logC, solid, dom);
+        const E_Co3O4_high = E_Co3O4_to_CoOH3s(pH);
+        if (E_Co3O4_low > E_Co3O4_high){ pen=false; continue; }
+        const E_disp = offRef===null ? E_Co3O4_high + S*pH : E_Co3O4_high - offRef;
+        if (E_disp < E_MIN || E_disp > E_MAX){ pen=false; continue; }
+        const px = x(pH, w), py = y(E_disp, h);
+        if (!pen){ c.moveTo(px, py); pen=true; } else c.lineTo(px, py);
+      }
+      c.stroke();
+    }
+    if (includeCoOOH){
+      let pen=false; c.beginPath();
+      for (let pH = PH_MIN; pH <= PH_MAX+1e-9; pH += 0.05){
+        const E_she = E_Co3O4_to_CoOOH(pH);
+        const E_disp = offRef===null ? E_she + S*pH : E_she - offRef;
+        if (E_disp < E_MIN || E_disp > E_MAX){ pen=false; continue; }
+        const px = x(pH, w), py = y(E_disp, h);
+        if (!pen){ c.moveTo(px, py); pen=true; } else c.lineTo(px, py);
+      }
+      c.stroke();
+    }
+
+    c.strokeStyle = '#791F1F'; c.lineWidth = 1.2; c.setLineDash([4,4]);
+    const transitions = [];
+    let prevSpec = null;
+    for (let pH = PH_MIN; pH <= PH_MAX; pH += 0.02){
+      const dom = dominantDissolved(pH);
+      const solid = solidStable(pH, logC);
+      const spec = solid ? 'Co(OH)2' : dom;
+      if (prevSpec !== null && prevSpec !== spec){
+        transitions.push({pH: pH, from: prevSpec, to: spec});
+      }
+      prevSpec = spec;
+    }
+    for (const t of transitions){
+      const dom = dominantDissolved(t.pH);
+      const solid = solidStable(t.pH, logC);
+      const Ef = E_floor(t.pH, logC, solid, dom);
+      const Er = E_roof_to_Co3O4(t.pH, logC, solid, dom);
+      const yEf = ydisp(Ef, t.pH);
+      const yEr = ydisp(Er, t.pH);
+      const yA = Math.max(yEr, PADT);
+      const yB = Math.min(yEf, h-PADB);
+      if (yB > yA){
+        const px = x(t.pH, w);
+        c.beginPath(); c.moveTo(px, yA); c.lineTo(px, yB); c.stroke();
+      }
+    }
+    c.setLineDash([]);
+
+    if (showWater){
+      c.strokeStyle = paper ? '#444' : '#1A1A1A'; c.lineWidth = 1.2; c.setLineDash([6,4]);
+      for (const E0_w of [0, 1.229]){
+        let pen2 = false; c.beginPath();
+        for (let pH = PH_MIN; pH <= PH_MAX; pH += 0.5){
+          const E = E0_w - S*pH;
+          const E_disp = offRef===null ? E + S*pH : E - offRef;
+          if (E_disp < E_MIN || E_disp > E_MAX){ pen2=false; continue; }
+          const px = x(pH, w), py = y(E_disp, h);
+          if (!pen2){ c.moveTo(px, py); pen2=true; } else c.lineTo(px, py);
+        }
+        c.stroke();
+      }
+      c.setLineDash([]);
+      const pH_w_lbl = 1;
+      c.fillStyle = paper ? '#444' : '#1A1A1A';
+      c.font = '500 11px '+fontMain;
+      c.textAlign = 'center';
+      {
+        const E_top = 1.229 - S*pH_w_lbl;
+        const E_disp = offRef===null ? E_top + S*pH_w_lbl : E_top - offRef;
+        if (E_disp >= E_MIN && E_disp <= E_MAX){
+          c.textBaseline = 'bottom'; c.fillText('O₂', x(pH_w_lbl, w), y(E_disp, h)-2);
+          c.textBaseline = 'top';    c.fillText('H₂O', x(pH_w_lbl, w), y(E_disp, h)+2);
+        }
+      }
+      {
+        const E_bot = 0 - S*pH_w_lbl;
+        const E_disp = offRef===null ? E_bot + S*pH_w_lbl : E_bot - offRef;
+        if (E_disp >= E_MIN && E_disp <= E_MAX){
+          c.textBaseline = 'top'; c.fillText('H₂', x(pH_w_lbl, w), y(E_disp, h)+2);
+        }
+      }
+    }
+
+    c.fillStyle = '#2C2C2A';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font='500 16px '+fontMain;
+    c.fillText('Co', x(4,w), y(-1.0, h));
+    // Dark backgrounds (Co3O4 teal, Co(OH)3 deep blue) need white text
+    c.fillStyle = paper ? '#2C2C2A' : '#FFFFFF';
+    c.fillText('Co(OH)₃', x(8,w), y(2.2, h));
+    c.fillText('Co₃O₄', x(8,w), y(1.0, h));
+    c.fillStyle = '#2C2C2A';
+
+    const runs = []; let runStart = PADL; let runSpec = colDom[PADL];
+    for (let px = PADL+1; px <= w-PADR; px++){
+      if (px === w-PADR || colDom[px] !== runSpec){
+        runs.push({name: runSpec, a: runStart, b: px});
+        runStart = px;
+        runSpec = colDom[px];
+      }
+    }
+    c.font='500 14px '+fontMain;
+    for (const r of runs){
+      const wpx = r.b - r.a;
+      if (wpx < 14) continue;
+      const midPx = 0.5*(r.a + r.b);
+      const pH = pHfromPx(midPx, w);
+      const dom = dominantDissolved(pH);
+      const solid = solidStable(pH, logC);
+      const Ef = E_floor(pH, logC, solid, dom);
+      const Er = E_roof_to_Co3O4(pH, logC, solid, dom);
+      const yEf = ydisp(Ef, pH), yEr = ydisp(Er, pH);
+      const cy = 0.5*(Math.max(yEr, PADT) + Math.min(yEf, h-PADB));
+      const text = labelMap[r.name] || r.name;
+      // White text on dark backgrounds (Co(OH)4_2- is darker blue)
+      c.fillStyle = (!paper && r.name === 'Co(OH)4_2-') ? '#FFFFFF' : '#2C2C2A';
+      const estW = text.length * 7;
+      if (estW > wpx - 4){
+        c.save(); c.translate(midPx, cy); c.rotate(-Math.PI/2);
+        c.font='500 12px '+fontMain; c.fillText(text, 0, 0); c.restore();
+      } else {
+        const fs = wpx < 60 ? 12 : 14;
+        c.font='500 '+fs+'px '+fontMain;
+        c.fillText(text, midPx, cy);
+      }
+    }
+    c.fillStyle = '#2C2C2A';
+
+    if (includeCoOOH){
+      const pH_lbl = 8;
+      const E_low = E_Co3O4_to_CoOOH(pH_lbl);
+      const E_high = E_Co3O4_to_CoOH3s(pH_lbl);
+      const E_mid = (E_low + E_high)/2;
+      const E_disp = offRef===null ? E_mid + S*pH_lbl : E_mid - offRef;
+      if (E_disp >= E_MIN && E_disp <= E_MAX){
+        c.font='500 13px '+fontMain;
+        c.fillText('CoOOH', x(pH_lbl, w), y(E_disp, h));
+      }
+    }
+
+    c.font='500 14px '+fontMain; c.textAlign='left'; c.textBaseline='top'; c.fillStyle='#2C2C2A';
+    c.fillText('Co-H₂O · 25 °C · [Co]ₜₒₜ = '+fmtConc(C_M), PADL, 6);
+  }
+
+  function update(){
+    const cCoSlider = parseFloat(document.getElementById('cCo').value);
+    const cCoM = Math.pow(10, cCoSlider);
+    document.getElementById('cCoOut').textContent = fmtConc(cCoM);
+    draw(cv);
+    document.getElementById('info').textContent = 'Co immunity (grey) sits below the H₂ line, so Co dissolves in deaerated acid — kinetically slow due to HER overpotential. Co₃O₄ dominates the passivation region; Co(OH)₂ appears only as a narrow strip between ~pH 7.1 (at 0.01 M) and ~pH 13.5.';
+  }
+  ['cCo','ref','water','paper','coooh'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener(el.tagName==='SELECT' || el.type==='checkbox' ? 'change' : 'input', update);
+  });
+  document.getElementById('png').addEventListener('click', function(){
+    const scale = 3;
+    const off = document.createElement('canvas'); off.width = cv.width; off.height = cv.height; draw(off);
+    const hi = document.createElement('canvas'); hi.width = cv.width*scale; hi.height = cv.height*scale;
+    const hc = hi.getContext('2d'); hc.imageSmoothingEnabled = false;
+    hc.drawImage(off, 0, 0, hi.width, hi.height);
+    const url = hi.toDataURL('image/png');
+    const out = document.getElementById('pngOut'); out.innerHTML = '';
+    const img = document.createElement('img'); img.src = url;
+    img.style.maxWidth='100%'; img.style.border='0.5px solid rgba(0,0,0,0.15)';
+    img.style.borderRadius='8px';
+    const note = document.createElement('div');
+    note.style.cssText='font-size:12px;color:#5F5E5A;margin-top:4px';
+    note.textContent = 'Right-click image to save as PNG (3× resolution)';
+    out.appendChild(img); out.appendChild(note);
+  });
+  update();
+})();
+</script>
+</body>
+</html>
